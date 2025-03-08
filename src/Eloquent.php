@@ -2,6 +2,7 @@
 namespace Ody\DB;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\Connection;
 
 class Eloquent
 {
@@ -13,6 +14,12 @@ class Eloquent
         );
         $capsule->setAsGlobal();
         $capsule->bootEloquent();
+
+        if (config('database.coroutine_enabled')) {
+            Connection::resolverFor('mysql', function($connection, $database, $prefix, $config) {
+                return new MySqlConnection($connection, $database, $prefix, $config);
+            });
+        }
 
         // set timezone for timestamps etc
         date_default_timezone_set('UTC');
