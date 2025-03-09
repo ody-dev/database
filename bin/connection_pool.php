@@ -29,8 +29,6 @@ class PoolServer
         $server->set(config('pool.additional'));
         $server->on('start', function (Server $server) use ($host, $port) {
             Logger::write('info', "server started; listening on tcp://$host:$port");
-
-
         });
 
         $server->on('workerStart', function (Server $server, int $workerId) {
@@ -73,7 +71,7 @@ class PoolServer
                 $data = json_decode(openssl_decrypt($data,"AES-128-ECB", config('database.key')), true);
 
                 $connection = $this->pool->borrow();
-                $stm = $connection->prepare($data[0]['queryString']);
+                $stm = $connection->prepare($data[0]);
                 $stm->execute($data[1]);
 
                 $result = $stm->fetchAll(PDO::FETCH_ASSOC);

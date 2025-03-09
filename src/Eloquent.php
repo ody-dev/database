@@ -3,6 +3,7 @@ namespace Ody\DB;
 
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Connection;
+use Illuminate\Database\Connectors\Connector;
 
 class Eloquent
 {
@@ -15,7 +16,7 @@ class Eloquent
         $capsule->setAsGlobal();
         $capsule->bootEloquent();
 
-        if (config('database.coroutine_enabled')) {
+        if (config('database.connection_pool.enabled')) {
             Connection::resolverFor('mysql', function($connection, $database, $prefix, $config) {
                 return new MySqlConnection($connection, $database, $prefix, $config);
             });

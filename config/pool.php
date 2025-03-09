@@ -3,7 +3,7 @@
 return [
     "key" => "secret",
     "enable" => true,
-    'host' => '0.0.0.0',
+    'host' => '127.0.0.1',
     'port' => 9504,
     'pool_size' => 32,
     'additional' => [

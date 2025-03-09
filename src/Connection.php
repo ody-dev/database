@@ -18,31 +18,13 @@ class Connection extends BaseConnection
 
     public function select($query, $bindings = array(), $useReadPdo = true)
     {
+        var_dump('here');
         return $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
             if ($this->pretending()) {
                 return [];
             }
 
-            // For select statements, we'll simply execute the query and return an array
-            // of the database result set. Each element in the array will be a single
-            // row from the database table, and will either be an array or objects.
-            $statement = $this->prepared(
-                $this->getPdoForSelect($useReadPdo)->prepare($query)
-            );
-
-            $this->bindValues($statement, $this->prepareBindings($bindings));
-
-
-            $statement->execute();
-
-            if ($this->poolEnabled)
-            {
-                $this->result = $this->sendToConnectionPool([$statement, $bindings]);
-            } else {
-                $this->result = $statement->fetchAll();
-            }
-
-            return $this->result;
+            return $this->sendToConnectionPool([$query, $bindings]);
         });
     }
 
