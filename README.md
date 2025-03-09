@@ -28,8 +28,6 @@ Add `DatabaseServiceProvider` to `config/app.php`
 1. Add/edit the `config/database.php` & `config/pool.php` file.
 2. When running a connection pool instance set `pool.enabled` to true and edit the host and port.
 3. Run `php bin/connection_pool.php` to start a simple TCP server that fires up a MySQL connection pool.
-   
-    **!! For the time being, add your MySQL credentials by editing line 24 - 26 in `bin/connection_pool_server.php` !!**
 
 To run Eloquent in standard mode, simply set `pool.enabled` to `false`. This is the advised method as the connection 
 pool still are in an experimental stage.
