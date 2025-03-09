@@ -14,11 +14,7 @@
     "ext-pdo": "*",
     "ext-swoole": "^5.1 || ^6.0",
     "illuminate/database": "^11.43",
-    "ody/swoole": "dev-master",
-    "ody/core": "dev-master",
-    "laravel/serializable-closure": "^1.3|^2.0",
-    "symfony/console": "^5.2.12|^6.0|^7.0",
-    "symfony/finder": "^5.0|^6.0|^7.0",
+    "ody/helpers": "dev-master",
     "psr/log": "3.0.0"
   },
   "require-dev": {
@@ -34,11 +30,5 @@
     "psr-4": {
       "Ody\\DB\\Tests\\": "tests/"
     }
-  },
-  "repositories": [
-    {
-      "type": "path",
-      "url": "../database"
-    }
-  ]
+  }
 }

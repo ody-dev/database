@@ -3,15 +3,12 @@
 namespace Ody\DB;
 
 use Illuminate\Database\Connection as BaseConnection;
-use Ody\Core\Monolog\Logger;
-use Ody\Swoole\Process\Exception;
-use Swoole\Coroutine\Client;
+use Swoole\Coroutine;
 
 class Connection extends BaseConnection
 {
     public function __construct($pdo, $database = '', $tablePrefix = '', array $config = [])
     {
-        echo "construct\n";
         parent::__construct($pdo, $database, $tablePrefix, $config);
 
         $this->poolHost = config('database.connection_pool.host');
@@ -35,37 +32,36 @@ class Connection extends BaseConnection
 
             $this->bindValues($statement, $this->prepareBindings($bindings));
 
+
             $statement->execute();
 
-            \Co\go(function () use ($statement) {
-                if ($this->poolEnabled)
-                {
-                    $this->result = $this->sendToConnectionPool($statement);
-                }
-
+            if ($this->poolEnabled)
+            {
+                $this->result = $this->sendToConnectionPool([$statement, $bindings]);
+            } else {
                 $this->result = $statement->fetchAll();
-            });
+            }
 
             return $this->result;
         });
     }
 
-    public function selectOne($query, $bindings = array(), $useReadPdo = true)
-    {
-        // This method is pretty much straight forward. Call the
-        // parent::select() method. If it returns any results
-        // normalize the first result or else return null.
-        $records = parent::select($query, $bindings);
+//    public function selectOne($query, $bindings = array(), $useReadPdo = true)
+//    {
+//        // This method is pretty much straight forward. Call the
+//        // parent::select() method. If it returns any results
+//        // normalize the first result or else return null.
+//        $records = parent::select($query, $bindings);
+//
+//        if (count($records) > 0)
+//        {
+//            return with(new Normalizer)->normalize(reset($records));
+//        }
+//
+//        return null;
+//    }
 
-        if (count($records) > 0)
-        {
-            return with(new Normalizer)->normalize(reset($records));
-        }
-
-        return null;
-    }
-
-    private function sendToConnectionPool(\PDOStatement $statement)
+    private function sendToConnectionPool(array $data)
     {
         $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         if ($socket === false) {
@@ -77,7 +73,7 @@ class Connection extends BaseConnection
             Throw new ConnectionPoolException("connect to pool failed. Error: " . socket_strerror(socket_last_error($socket)));
         }
 
-        socket_write($socket, $statement->queryString);
+        socket_write($socket, openssl_encrypt(json_encode($data),"AES-128-ECB", config('app.key')));
         $result = '';
         while ($out = socket_read($socket, 2048)) {
             $result .= $out;
