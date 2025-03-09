@@ -81,7 +81,7 @@ class PoolServer
             } catch (\Throwable $exception) {
                 Logger::write('error',  'message: ' . $exception->getMessage() .  " [{$exception->getFile()}:{$exception->getLine()}]");
 
-                $server->send($fd, json_encode(['error' => $exception->getMessage()]));
+                $server->send($fd, json_encode(['error' => $exception->getMessage() .  " [{$exception->getFile()}:{$exception->getLine()}]"]));
                 $server->close($fd);
             }
         });
