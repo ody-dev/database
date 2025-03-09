@@ -7,7 +7,7 @@ return [
     'port' => 9504,
     'pool_size' => 32,
     'additional' => [
-        'enable_delay_receive' => false,
+        'enable_delay_receive' => true,
         'daemonize' => false,
         'worker_num' => 4,
         'log_level' => 1,
