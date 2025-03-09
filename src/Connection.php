@@ -18,7 +18,6 @@ class Connection extends BaseConnection
 
     public function select($query, $bindings = array(), $useReadPdo = true)
     {
-        var_dump('here');
         return $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
             if ($this->pretending()) {
                 return [];
