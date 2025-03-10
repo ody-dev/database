@@ -1,6 +1,6 @@
 <?php
 
-namespace Ody\DB\ServiceProviders;
+namespace Ody\DB;
 
 use Ody\Core\Foundation\Providers\ServiceProvider;
 use Ody\DB\Migrations\Command\CleanupCommand;
