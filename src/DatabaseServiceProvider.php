@@ -2,7 +2,7 @@
 
 namespace Ody\DB;
 
-use Ody\Core\Foundation\Providers\ServiceProvider;
+use Ody\Foundation\Providers\ServiceProvider;
 use Ody\DB\Migrations\Command\CleanupCommand;
 use Ody\DB\Migrations\Command\CreateCommand;
 use Ody\DB\Migrations\Command\DiffCommand;
@@ -14,25 +14,25 @@ use Ody\DB\Migrations\Command\StatusCommand;
 
 class DatabaseServiceProvider extends ServiceProvider
 {
-    public function register()
+    public function register(): void
     {
 
     }
 
-    public function boot()
+    public function boot(): void
     {
-        if ($this->app->runningInConsole()) {
-            $this->commands = [
-                DiffCommand::class,
-                MigrateCommand::class,
-                StatusCommand::class,
-                CleanupCommand::class,
-                DumpCommand::class,
-                CreateCommand::class,
-                RollbackCommand::class,
-                InitCommand::class,
-            ];
-        }
+//        if ($this->container->get('runningInConsole')) {
+//            $this->commands = [
+//                DiffCommand::class,
+//                MigrateCommand::class,
+//                StatusCommand::class,
+//                CleanupCommand::class,
+//                DumpCommand::class,
+//                CreateCommand::class,
+//                RollbackCommand::class,
+//                InitCommand::class,
+//            ];
+//        }
 
         if (class_exists('Ody\DB\Eloquent')) {
             \Ody\DB\Eloquent::boot(

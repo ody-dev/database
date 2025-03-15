@@ -14,7 +14,6 @@
     "ext-pdo": "*",
     "ext-swoole": "^5.1 || ^6.0",
     "illuminate/database": "^11.43",
-    "ody/helpers": "dev-master",
     "psr/log": "3.0.0"
   },
   "require-dev": {
@@ -36,5 +35,10 @@
       "type": "path",
       "url": "../SMProxy"
     }
-  ]
+  ],
+  "extra": {
+    "providers": [
+      "Ody\\Database\\DatabseServiceProvider"
+    ]
+  }
 }
