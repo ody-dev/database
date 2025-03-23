@@ -13,7 +13,6 @@ use Doctrine\DBAL\Driver\Connection;
 use Doctrine\DBAL\Driver\Result;
 use Doctrine\DBAL\Driver\Statement;
 use Ody\DB\ConnectionPool\ConnectionPoolAdapter;
-use Ody\DB\Migrations\Database\Adapter\MysqlAdapter;
 use PDO;
 
 /**
@@ -22,11 +21,11 @@ use PDO;
 class PooledPDOConnection implements Connection
 {
     /**
-     * The PDO instance
+     * The PDO instance or PDO proxy
      *
-     * @var PDO
+     * @var PDO|\Swoole\Database\PDOProxy
      */
-    private PDO $pdo;
+    private $pdo;
 
     /**
      * The connection pool adapter
@@ -45,11 +44,18 @@ class PooledPDOConnection implements Connection
     /**
      * Constructor
      *
-     * @param PDO $pdo
+     * @param PDO|\Swoole\Database\PDOProxy $pdo
      * @param ConnectionPoolAdapter|null $pool
      */
-    public function __construct(PDO $pdo, ?ConnectionPoolAdapter $pool = null)
+    public function __construct($pdo, ?ConnectionPoolAdapter $pool = null)
     {
+        if (!($pdo instanceof PDO) && !($pdo instanceof \Swoole\Database\PDOProxy)) {
+            throw new \InvalidArgumentException(
+                'The connection must be an instance of PDO or Swoole\Database\PDOProxy, got: ' .
+                (is_object($pdo) ? get_class($pdo) : gettype($pdo))
+            );
+        }
+
         $this->pdo = $pdo;
         $this->pool = $pool;
     }
@@ -126,24 +132,6 @@ class PooledPDOConnection implements Connection
     }
 
     /**
-     * Get native PDO instance
-     *
-     * @return PDO
-     */
-    public function getNativeConnection(): PDO
-    {
-        return $this->pdo;
-    }
-
-    /**
-     * Return connection to pool when object is destroyed
-     */
-    public function __destruct()
-    {
-        $this->close();
-    }
-
-    /**
      * Return the connection to the pool when finished
      *
      * @return void
@@ -160,9 +148,26 @@ class PooledPDOConnection implements Connection
         }
     }
 
+    /**
+     * Get native PDO instance or proxy
+     *
+     * @return PDO|\Swoole\Database\PDOProxy
+     */
+    public function getNativeConnection()
+    {
+        return $this->pdo;
+    }
+
+    /**
+     * Return connection to pool when object is destroyed
+     */
+    public function __destruct()
+    {
+        $this->close();
+    }
+
     public function getServerVersion(): string
     {
         // TODO: Implement getServerVersion() method.
-        return MysqlAdapter::getServerVersion();
     }
 }

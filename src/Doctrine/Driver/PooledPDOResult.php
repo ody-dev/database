@@ -9,20 +9,31 @@ use PDOStatement;
 /**
  * Pooled PDO Result implementation
  */
+
+/**
+ * Pooled PDO Result implementation
+ */
 class PooledPDOResult implements Result
 {
     /**
-     * @var PDOStatement
+     * @var PDOStatement|\Swoole\Database\PDOStatementProxy
      */
-    private PDOStatement $stmt;
+    private $stmt;
 
     /**
      * Constructor
      *
-     * @param PDOStatement $stmt
+     * @param PDOStatement|\Swoole\Database\PDOStatementProxy $stmt
      */
-    public function __construct(PDOStatement $stmt)
+    public function __construct($stmt)
     {
+        if (!($stmt instanceof PDOStatement) && !($stmt instanceof \Swoole\Database\PDOStatementProxy)) {
+            throw new \InvalidArgumentException(
+                'The statement must be an instance of PDOStatement or Swoole\Database\PDOStatementProxy, got: ' .
+                (is_object($stmt) ? get_class($stmt) : gettype($stmt))
+            );
+        }
+
         $this->stmt = $stmt;
     }
 

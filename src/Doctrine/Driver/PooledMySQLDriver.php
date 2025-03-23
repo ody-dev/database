@@ -40,9 +40,10 @@ class PooledMySQLDriver extends AbstractPostgreSQLDriver
     public function connect(array $params): Driver\Connection
     {
         $cid = Coroutine::getCid();
-
+        var_dump($params);
         // If not in a coroutine or pooling is disabled, use standard PDO connection
         if ($cid === -1 || !($params['use_pooling'] ?? false) || !extension_loaded('swoole')) {
+            error_log('using standard connection cid: ' . $cid);
             return $this->createStandardConnection($params);
         }
 
