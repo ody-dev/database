@@ -1,16 +1,82 @@
 <?php
+/*
+ *  This file is part of ODY framework.
+ *
+ *  @link     https://ody.dev
+ *  @document https://ody.dev/docs
+ *  @license  https://github.com/ody-dev/ody-foundation/blob/master/LICENSE
+ */
 
 namespace Ody\DB\Facades;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Result;
+use Ody\DB\Doctrine\PooledConnectionManager;
 
 /**
- * Facade for Doctrine DBAL
+ * Facade for Doctrine DBAL with connection pooling support
  */
 class DBAL
 {
+    /**
+     * Connection configurations
+     *
+     * @var array
+     */
+    protected static array $configs = [];
+
+    /**
+     * Set the configuration for a connection
+     *
+     * @param array $config
+     * @param string $name
+     * @return void
+     */
+    public static function setConfig(array $config, string $name = 'default'): void
+    {
+        self::$configs[$name] = $config;
+    }
+
+    /**
+     * Get the configuration for a connection
+     *
+     * @param string $name
+     * @return array
+     * @throws \RuntimeException
+     */
+    public static function getConfig(string $name = 'default'): array
+    {
+        if (!isset(self::$configs[$name])) {
+            throw new \RuntimeException("No configuration found for connection: {$name}");
+        }
+
+        return self::$configs[$name];
+    }
+
+    /**
+     * Get a connection with pooling support
+     *
+     * @param string $name Connection name
+     * @param array|null $config Custom connection config
+     * @return Connection
+     */
+    public static function connection(string $name = 'default', ?array $config = null): Connection
+    {
+        $connectionParams = $config ?? self::$configs[$name] ?? null;
+
+        if ($connectionParams === null) {
+            // Try to get the connection from the container if available
+            if (function_exists('app') && app()->bound('db.dbal.connection')) {
+                return app()->make('db.dbal.connection', ['name' => $name]);
+            }
+
+            throw new \RuntimeException("No configuration found for connection: {$name}");
+        }
+
+        return PooledConnectionManager::getConnection($connectionParams, $name);
+    }
+
     /**
      * Get a query builder
      *
@@ -20,18 +86,6 @@ class DBAL
     public static function createQueryBuilder(string $name = 'default'): QueryBuilder
     {
         return self::connection($name)->createQueryBuilder();
-    }
-
-    /**
-     * Get a DBAL connection
-     *
-     * @param string $name Connection name
-     * @param array|null $config Custom connection parameters
-     * @return Connection
-     */
-    public static function connection(string $name = 'default', ?array $config = null): Connection
-    {
-        return DBALConnectionManager::getConnection($name, $config);
     }
 
     /**
@@ -150,24 +204,12 @@ class DBAL
     }
 
     /**
-     * Quote a string for use in a query
-     *
-     * @param string $value
-     * @param string $connection Connection name
-     * @return string
-     */
-    public static function quote(string $value, string $connection = 'default'): string
-    {
-        return self::connection($connection)->quote($value);
-    }
-
-    /**
-     * Close all database connections
+     * Close all connection pools
      *
      * @return void
      */
     public static function closeAll(): void
     {
-        DBALConnectionManager::closeAll();
+        PooledConnectionManager::closeAll();
     }
 }
