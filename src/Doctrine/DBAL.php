@@ -1,23 +1,8 @@
 <?php
-/*
- *  This file is part of ODY framework.
- *
- *  @link     https://ody.dev
- *  @document https://ody.dev/docs
- *  @license  https://github.com/ody-dev/ody-foundation/blob/master/LICENSE
- */
-
-/*
- *  This file is part of ODY framework.
- *
- *  @link     https://ody.dev
- *  @document https://ody.dev/docs
- *  @license  https://github.com/ody-dev/ody-foundation/blob/master/LICENSE
- */
 
 namespace Ody\DB\Doctrine;
 
-use Doctrine\DBAL\DriverManager;
+use Swoole\Coroutine;
 
 /**
  * DBAL Module
@@ -52,6 +37,9 @@ class DBAL
 
         // Patch Doctrine's DriverManager to use our connection resolver
         self::patchDriverManager();
+
+        // Set default connection config in connection manager
+        DBALConnectionManager::setDefaultConfig($config);
 
         // Pre-initialize the pool if pooling is enabled
         if (config('database.enable_connection_pool', false) && extension_loaded('swoole')) {
@@ -89,15 +77,15 @@ class DBAL
     protected static function patchDriverManager(): void
     {
         // Store the original getConnection method
-        if (!method_exists(DriverManager::class, 'getConnectionOrig')) {
-            $getConnectionReflection = new \ReflectionMethod(DriverManager::class, 'getConnection');
+        if (!method_exists(\Doctrine\DBAL\DriverManager::class, 'getConnectionOrig')) {
+            $getConnectionReflection = new \ReflectionMethod(\Doctrine\DBAL\DriverManager::class, 'getConnection');
             $getConnectionFunc = $getConnectionReflection->getClosure();
 
             // Add the original method as a static method
-            DriverManager::getConnectionOrig = $getConnectionFunc;
+            \Doctrine\DBAL\DriverManager::getConnectionOrig = $getConnectionFunc;
 
             // Override the getConnection method to check for pooling
-            DriverManager::getConnection = function(array $params, $config = null, $eventManager = null) {
+            \Doctrine\DBAL\DriverManager::getConnection = function (array $params, $config = null, $eventManager = null) {
                 // Check if we should use a pooled connection
                 $usePooling = ($params['use_pooling'] ?? false) && extension_loaded('swoole');
 
@@ -107,7 +95,7 @@ class DBAL
                 }
 
                 // Otherwise use the original factory
-                return DriverManager::getConnectionOrig($params, $config, $eventManager);
+                return \Doctrine\DBAL\DriverManager::getConnectionOrig($params, $config, $eventManager);
             };
         }
     }

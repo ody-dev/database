@@ -1,27 +1,42 @@
 <?php
-/*
- *  This file is part of ODY framework.
- *
- *  @link     https://ody.dev
- *  @document https://ody.dev/docs
- *  @license  https://github.com/ody-dev/ody-foundation/blob/master/LICENSE
- */
-
-/*
- *  This file is part of ODY framework.
- *
- *  @link     https://ody.dev
- *  @document https://ody.dev/docs
- *  @license  https://github.com/ody-dev/ody-foundation/blob/master/LICENSE
- */
 
 namespace Ody\DB\Providers;
 
+use Doctrine\DBAL\Connection;
 use Ody\DB\Doctrine\DBAL;
+use Ody\DB\Doctrine\DBALConnectionManager;
 use Ody\Foundation\Providers\ServiceProvider;
 
 class DBALServiceProvider extends ServiceProvider
 {
+    /**
+     * Register the service provider.
+     *
+     * @return void
+     */
+    public function register(): void
+    {
+        // Register DBAL facade as a singleton
+        $this->container->singleton('db.dbal', function () {
+            return new \Ody\DB\Doctrine\DBAL();
+        });
+
+        // Register the connection manager
+        $this->container->singleton('db.dbal.connection_manager', function () {
+            return new DBALConnectionManager();
+        });
+
+        // Register the default connection as a singleton
+        $this->container->singleton(Connection::class, function ($app) {
+            return DBALConnectionManager::getConnection();
+        });
+    }
+
+    /**
+     * Bootstrap any application services.
+     *
+     * @return void
+     */
     public function boot(): void
     {
         // Skip initialization during console commands
@@ -32,7 +47,7 @@ class DBALServiceProvider extends ServiceProvider
         // Get database configuration
         $dbConfig = config('database.environments')[config('app.environment', 'local')];
 
-        // Convert config to Doctrine format if needed
+        // Convert config to Doctrine format
         $doctrineConfig = [
             'driver' => 'pdo_mysql',
             'host' => $dbConfig['host'] ?? 'localhost',
@@ -52,10 +67,5 @@ class DBALServiceProvider extends ServiceProvider
 
         // Boot DBAL with configuration
         DBAL::boot($doctrineConfig);
-    }
-
-    public function register(): void
-    {
-        // TODO: Implement register() method.
     }
 }
