@@ -1,6 +1,6 @@
 <?php
 
-namespace Ody\DB\Doctrine;
+namespace Ody\DB\Facades;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
