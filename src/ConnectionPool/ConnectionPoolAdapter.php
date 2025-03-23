@@ -1,11 +1,4 @@
 <?php
-/*
- *  This file is part of ODY framework.
- *
- *  @link     https://ody.dev
- *  @document https://ody.dev/docs
- *  @license  https://github.com/ody-dev/ody-foundation/blob/master/LICENSE
- */
 
 namespace Ody\DB\ConnectionPool;
 
@@ -22,17 +15,40 @@ class ConnectionPoolAdapter
         'returned_total' => 0,
         'created_total' => 0,
         'errors_total' => 0,
-        'current_active' => 0,
     ];
 
     public function __construct(array $config, int $size = 64)
     {
         // Set performance-optimized PDO attributes
         $defaultOptions = [
+            // Disable prepared statement emulation for better security and performance
             PDO::ATTR_EMULATE_PREPARES => false,
+
+            // Use persistent connections for better performance
+            // Note: Be careful with this in a pooled environment
+            PDO::ATTR_PERSISTENT => true,
+
+            // Set error mode to exceptions for better error handling
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+
+            // Set default fetch mode
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+
+            // Important: Auto-commit should be on for connection pooling
             PDO::ATTR_AUTOCOMMIT => true,
+
+            // Server-side prepared statements (available in MySQL 5.1.17+)
+            // Can improve query performance, especially for repeated queries
+            // PDO::MYSQL_ATTR_DIRECT_QUERY => false,
+
+            // Increase network buffer size for better performance with large datasets
+            // PDO::MYSQL_ATTR_READ_DEFAULT_GROUP => 'max_allowed_packet=16M',
+
+            // Optionally disable strict mode if your application requires it
+            // PDO::MYSQL_ATTR_INIT_COMMAND => "SET SESSION sql_mode=''",
+
+            // Set a longer timeout for long-running queries
+            // PDO::ATTR_TIMEOUT => 3,
         ];
 
         // Merge default options with any provided options
@@ -56,30 +72,17 @@ class ConnectionPoolAdapter
     /**
      * Get a connection from the pool
      *
-     * @return false|PDOProxy
+     * @return PDOProxy
      */
-    public function borrow(): false|PDOProxy
+    public function borrow(): PDOProxy
     {
         $this->metrics['borrowed_total']++;
-        $this->metrics['current_active']++;
+        $pdo = $this->pool->get();
 
-        try {
-            $pdo = $this->pool->get();
+        // Additional runtime checks or warmup could be done here
+        // For example: ensure connection is still valid or set session variables
 
-            // Some additional validation/ping could be done here
-            // to ensure the connection is still valid
-
-            return $pdo;
-        } catch (\Throwable $e) {
-            $this->metrics['errors_total']++;
-
-            // If there's an error getting from the pool, create a direct PDO connection
-            // This is a fallback for when the pool is having issues
-            logger()->error("Error getting connection from pool: " . $e->getMessage());
-
-            // Rethrow the exception to be handled by caller
-            throw $e;
-        }
+        return $pdo;
     }
 
     /**
@@ -94,25 +97,11 @@ class ConnectionPoolAdapter
             return;
         }
 
-        $this->metrics['returned_total']++;
-        $this->metrics['current_active'] = max(0, $this->metrics['current_active'] - 1);
+        // Optionally clean up the connection before returning to pool
+        // Reset any session variables, clear warnings, etc.
 
-        // Handle both PDOProxy and regular PDO instances
-        if ($connection instanceof PDOProxy) {
-            // Swoole PDOProxy instances are already designed to be returned to the pool
-            try {
-                $this->pool->put($connection);
-            } catch (\Throwable $e) {
-                // If there's an issue returning to the pool (e.g., the reset() method not found)
-                // We'll log it but not throw, as this is a non-critical operation
-                logger()->error("Error returning connection to pool: " . $e->getMessage());
-                $this->metrics['errors_total']++;
-            }
-        } else {
-            // For non-proxy connections, we can't return them to the Swoole pool
-            // They will be garbage collected normally
-            logger()->debug("Non-proxy connection will be garbage collected instead of returned to pool");
-        }
+        $this->metrics['returned_total']++;
+        $this->pool->put($connection);
     }
 
     /**

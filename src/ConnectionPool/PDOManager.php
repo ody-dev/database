@@ -1,18 +1,11 @@
 <?php
-/*
- *  This file is part of ODY framework.
- *
- *  @link     https://ody.dev
- *  @document https://ody.dev/docs
- *  @license  https://github.com/ody-dev/ody-foundation/blob/master/LICENSE
- */
 
 namespace Ody\DB;
 
 use Ody\DB\ConnectionPool\ConnectionPoolAdapter;
 use Swoole\Coroutine;
 
-class EloquentConnectionManager
+class PDOManager
 {
     private static ?ConnectionPoolAdapter $pool = null;
     private static array $activeConnections = [];
@@ -24,7 +17,7 @@ class EloquentConnectionManager
         }
     }
 
-    public static function getConnection(): Connection
+    public static function getConnection(): \PDO
     {
         $cid = Coroutine::getCid();
 
@@ -35,26 +28,19 @@ class EloquentConnectionManager
 
         $pdo = self::$pool->borrow();
 
-        // Create Eloquent connection instance
-        $connection = new Connection(
-            $pdo,
-            $config['db_name'] ?? '',
-            $config['prefix'] ?? '',
-            $config
-        );
-
         // Store for this coroutine
-        self::$activeConnections[$cid] = $connection;
+        self::$activeConnections[$cid] = $pdo;
 
         // Auto-return on coroutine end
-        Coroutine::defer(function () use ($cid, $pdo) {
+        Coroutine::defer(function () use ($cid) {
             if (isset(self::$activeConnections[$cid])) {
+                $connection = self::$activeConnections[$cid];
                 unset(self::$activeConnections[$cid]);
-                self::$pool->return($pdo);
+                self::$pool->return($connection);
             }
         });
 
-        return $connection;
+        return $pdo;
     }
 
     public static function close(): void
